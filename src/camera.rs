@@ -4,6 +4,29 @@ use rand::distributions::{Distribution, Uniform};
 use rand::rngs::ThreadRng;
 
 #[derive(Default)]
+pub struct CameraSettings {
+    pub look_from: Point3,
+    pub look_at: Point3,
+    pub vup: Vec3,
+    pub vfov: f64,
+    pub aperture: f64,
+    pub focus_dist: f64,
+}
+
+impl CameraSettings {
+    pub fn cover_camera() -> Self {
+        CameraSettings {
+            look_from: point3!(13., 2., 3.),
+            look_at: point3!(),
+            vup: vec3!(0., 1., 0.),
+            vfov: 20.,
+            aperture: 0.1,
+            focus_dist: 10.,
+        }
+    }
+}
+
+#[derive(Default)]
 pub struct Camera {
     origin: Point3,
     lower_left_corner: Point3,
@@ -32,29 +55,21 @@ impl Camera {
     /// - `aperture`
     ///
     /// - `focus_dist`
-    pub fn new(
-        look_from: Point3,
-        look_at: Point3,
-        vup: Vec3,
-        vfov: f64,
-        aspect_ratio: f64,
-        aperture: f64,
-        focus_dist: f64,
-    ) -> Self {
-        let theta = vfov.to_radians();
+    pub fn new(settings: CameraSettings, aspect_ratio: f64) -> Self {
+        let theta = settings.vfov.to_radians();
         let h = (theta / 2.).tan();
         let viewport_height = 2. * h;
         let viewport_width = aspect_ratio * viewport_height;
 
-        let w = (look_from - look_at).unit_vector();
-        let u = vup.conv::<Point3>().cross(&w).unit_vector();
+        let w = (settings.look_from - settings.look_at).unit_vector();
+        let u = settings.vup.conv::<Point3>().cross(&w).unit_vector();
         let v = w.cross(&u);
 
-        let origin = look_from;
-        let horizontal = focus_dist * viewport_width * u;
-        let vertical = focus_dist * viewport_height * v;
+        let origin = settings.look_from;
+        let horizontal = settings.focus_dist * viewport_width * u;
+        let vertical = settings.focus_dist * viewport_height * v;
         let lower_left_corner =
-            origin - (horizontal / 2.).conv() - (vertical / 2.).conv() - focus_dist * w;
+            origin - (horizontal / 2.).conv() - (vertical / 2.).conv() - settings.focus_dist * w;
 
         Camera {
             origin,
@@ -63,20 +78,8 @@ impl Camera {
             vertical: vertical.conv(),
             u,
             v,
-            lens_radius: aperture / 2.,
+            lens_radius: settings.aperture / 2.,
         }
-    }
-
-    pub fn cover_camera() -> Self {
-        Camera::new(
-            point3!(13., 2., 3.),
-            point3!(),
-            vec3!(0., 1., 0.),
-            20.,
-            16. / 9.,
-            0.1,
-            10.,
-        )
     }
 
     pub fn get_ray(&self, s: f64, t: f64, rng: &mut ThreadRng, uniform_unit: &Uniform<f64>) -> Ray {

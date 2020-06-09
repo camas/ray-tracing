@@ -1,4 +1,4 @@
-use crate::camera::Camera;
+use crate::camera::{Camera, CameraSettings};
 use crate::image::Image;
 use crate::ray::Ray;
 use crate::world::World;
@@ -273,11 +273,15 @@ pub mod material;
 pub mod ray;
 pub mod world;
 
-pub fn raytrace_image(world: World, camera: Camera) -> Image {
-    let aspect_ratio = 16. / 9.;
-    let image_width = 1920;
-    let image_height = (image_width as f64 / aspect_ratio) as u32;
+pub fn raytrace_image(
+    world: World,
+    camera_settings: CameraSettings,
+    image_width: u32,
+    image_height: u32,
+) -> Image {
+    let aspect_ratio = image_width as f64 / image_height as f64;
     let samples_per_pixel = 100;
+    let camera = Camera::new(camera_settings, aspect_ratio);
 
     // Setup progress bar
     let prog_bar = indicatif::ProgressBar::new(image_height as u64);
