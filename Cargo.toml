@@ -1,0 +1,11 @@
+[package]
+name = "ray-tracing"
+version = "0.1.0"
+authors = ["camas <camas@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+image = "*" # Read and write image files
+rayon = "*" # Parallelism
+rand = "*" # Random number generation
+indicatif = {version = "*", features = ["with_rayon"]} # Progress bar
