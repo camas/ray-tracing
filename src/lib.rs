@@ -9,7 +9,7 @@ use rand::Rng;
 use rayon::prelude::*;
 use std::fmt::Display;
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 
 // Create basic Vec3 structs
 // They all behave the same but have different identifiers and can't be interchanged directly
@@ -87,6 +87,19 @@ macro_rules! vec3_struct {
                     $x: a,
                     $y: b,
                     $z: c,
+                }
+            }
+        }
+
+        impl Index<usize> for $name {
+            type Output = f64;
+
+            fn index(&self, i: usize) -> &Self::Output {
+                match i {
+                    0 => &self.$x,
+                    1 => &self.$y,
+                    2 => &self.$z,
+                    _ => panic!("Invalid vec3 index"),
                 }
             }
         }

@@ -29,7 +29,7 @@ impl Lambertian {
 impl Material for Lambertian {
     fn scatter(
         &self,
-        _: &Ray,
+        ray: &Ray,
         rec: &HitRecord,
         rng: &mut ThreadRng,
         uniform_unit: &Uniform<f64>,
@@ -38,6 +38,7 @@ impl Material for Lambertian {
         let ray = Ray {
             origin: rec.point,
             dir: (target - rec.point).conv(),
+            time: ray.time,
         };
         Some((ray, self.albedo))
     }
@@ -69,6 +70,7 @@ impl Material for Metal {
         let ray = Ray {
             origin: rec.point,
             dir: reflected + (self.fuzz * rand_unit_vector(rng, uniform_unit)).conv(),
+            time: ray.time,
         };
         if ray.dir.dot(&rec.normal) <= 0. {
             return None;
@@ -93,7 +95,7 @@ impl Material for Dielectric {
         ray: &Ray,
         rec: &HitRecord,
         rng: &mut ThreadRng,
-        uniform_unit: &Uniform<f64>,
+        _: &Uniform<f64>,
     ) -> Option<(Ray, Color)> {
         let attuen = Color::new(1., 1., 1.);
         let etai_over_etat = if rec.front_face {
@@ -117,6 +119,7 @@ impl Material for Dielectric {
         let ray = Ray {
             origin: rec.point,
             dir,
+            time: ray.time,
         };
         Some((ray, attuen))
     }

@@ -11,6 +11,8 @@ pub struct CameraSettings {
     pub vfov: f64,
     pub aperture: f64,
     pub focus_dist: f64,
+    pub t0: f64,
+    pub t1: f64,
 }
 
 impl CameraSettings {
@@ -22,11 +24,12 @@ impl CameraSettings {
             vfov: 20.,
             aperture: 0.1,
             focus_dist: 10.,
+            t0: 0.,
+            t1: 1.,
         }
     }
 }
 
-#[derive(Default)]
 pub struct Camera {
     origin: Point3,
     lower_left_corner: Point3,
@@ -35,6 +38,7 @@ pub struct Camera {
     u: Point3,
     v: Point3,
     lens_radius: f64,
+    time_dist: Uniform<f64>,
 }
 
 impl Camera {
@@ -71,6 +75,8 @@ impl Camera {
         let lower_left_corner =
             origin - (horizontal / 2.).conv() - (vertical / 2.).conv() - settings.focus_dist * w;
 
+        let time_dist = Uniform::from(settings.t0..settings.t1);
+
         Camera {
             origin,
             lower_left_corner,
@@ -79,17 +85,20 @@ impl Camera {
             u,
             v,
             lens_radius: settings.aperture / 2.,
+            time_dist,
         }
     }
 
     pub fn get_ray(&self, s: f64, t: f64, rng: &mut ThreadRng, uniform_unit: &Uniform<f64>) -> Ray {
         let rd = self.lens_radius * random_in_unit_disk(rng, uniform_unit);
         let offset = self.u * rd.x + self.v * rd.y;
+        let time = self.time_dist.sample(rng);
         Ray {
             origin: self.origin + offset,
             dir: self.lower_left_corner.conv::<Vec3>() + s * self.horizontal + t * self.vertical
                 - self.origin.conv()
                 - offset.conv(),
+            time,
         }
     }
 }
