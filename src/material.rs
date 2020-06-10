@@ -1,5 +1,5 @@
+use crate::hittable::HitRecord;
 use crate::ray::Ray;
-use crate::world::HitRecord;
 use crate::Color;
 use crate::{rand_unit_vector, schlick};
 use rand::distributions::{Standard, Uniform};

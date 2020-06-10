@@ -59,7 +59,7 @@ impl Camera {
     /// - `aperture`
     ///
     /// - `focus_dist`
-    pub fn new(settings: CameraSettings, aspect_ratio: f64) -> Self {
+    pub fn new(settings: &CameraSettings, aspect_ratio: f64) -> Self {
         let theta = settings.vfov.to_radians();
         let h = (theta / 2.).tan();
         let viewport_height = 2. * h;

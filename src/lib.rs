@@ -1,7 +1,8 @@
 use crate::camera::{Camera, CameraSettings};
+use crate::hittable::Hittable;
 use crate::image::Image;
 use crate::ray::Ray;
-use crate::world::World;
+use crate::world::{BvhNode, World};
 use indicatif::ParallelProgressIterator;
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::rngs::ThreadRng;
@@ -281,6 +282,7 @@ impl Vec3 {
 }
 
 pub mod camera;
+pub mod hittable;
 pub mod image;
 pub mod material;
 pub mod ray;
@@ -294,13 +296,21 @@ pub fn raytrace_image(
 ) -> Image {
     let aspect_ratio = image_width as f64 / image_height as f64;
     let samples_per_pixel = 100;
-    let camera = Camera::new(camera_settings, aspect_ratio);
+    let camera = Camera::new(&camera_settings, aspect_ratio);
 
     // Setup progress bar
     let prog_bar = indicatif::ProgressBar::new(image_height as u64);
     prog_bar.set_style(indicatif::ProgressStyle::default_bar().template(
         "Rendering - Done {elapsed:>3} Estimated {eta:>3} {wide_bar} {pos:>4}/{len:4} Lines",
     ));
+
+    // Setup tree
+    let tree = BvhNode::make_tree(
+        world.hittables,
+        camera_settings.t0,
+        camera_settings.t1,
+        &mut rand::thread_rng(),
+    );
 
     let data: Vec<Vec<Color>> = (0..image_height)
         // Parallel iter over each line starting from the top
@@ -320,7 +330,7 @@ pub fn raytrace_image(
                             let v = (j as f64 + rng.sample::<f64, _>(Standard))
                                 / (image_height - 1) as f64;
                             let ray = camera.get_ray(u, v, &mut rng, &uniform_unit);
-                            ray_color(&ray, &world, &mut rng, &uniform_unit, 0)
+                            ray_color(&ray, &tree, &mut rng, &uniform_unit, 0)
                         })
                         .sum::<Color>()
                         / samples_per_pixel as f64
@@ -342,7 +352,7 @@ const MAX_CHILD_RAY_DEPTH: u32 = 50;
 
 fn ray_color(
     ray: &Ray,
-    world: &World,
+    world: &BvhNode,
     rng: &mut ThreadRng,
     uniform_unit: &Uniform<f64>,
     depth: u32,
