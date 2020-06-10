@@ -285,15 +285,19 @@ impl<'a> Hittable for BvhNode<'a> {
         }
 
         let left_hit = self.left.hit(ray, t_min, t_max);
-        if left_hit.is_some() {
-            return left_hit;
-        }
         let right_hit = self.right.hit(ray, t_min, t_max);
-        if right_hit.is_some() {
-            return right_hit;
+        match (left_hit, right_hit) {
+            (Some(left_rec), Some(right_rec)) => {
+                if left_rec.t < right_rec.t {
+                    Some(left_rec)
+                } else {
+                    Some(right_rec)
+                }
+            }
+            (Some(left_rec), None) => Some(left_rec),
+            (None, Some(right_rec)) => Some(right_rec),
+            (None, None) => None,
         }
-
-        None
     }
 
     fn bounding_box(&self, t0: f64, t1: f64) -> Option<AABB> {
