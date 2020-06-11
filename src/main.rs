@@ -13,8 +13,8 @@ fn main() {
 
     // Do work
     let camera = CameraSettings::cover_camera();
-    let world = World::moving_cover_world();
-    let image = raytrace_image(world, camera, 1920, 1080);
+    let world = World::checkered_cover_world();
+    let image = raytrace_image(world, camera, 354, 240);
     //let image = create_cover();
     image.write_png("image.png");
 

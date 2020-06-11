@@ -1,5 +1,6 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
+use crate::texture::Texture;
 use crate::Color;
 use crate::{rand_unit_vector, schlick};
 use rand::distributions::{Standard, Uniform};
@@ -16,17 +17,19 @@ pub trait Material {
     ) -> Option<(Ray, Color)>;
 }
 
-pub struct Lambertian {
-    albedo: Color,
+pub struct Lambertian<'a> {
+    albedo: Box<dyn Texture + Sync + 'a>,
 }
 
-impl Lambertian {
-    pub fn new(albedo: Color) -> Self {
-        Self { albedo }
+impl<'a> Lambertian<'a> {
+    pub fn new<T: Texture + Sync + 'a>(albedo: T) -> Self {
+        Self {
+            albedo: Box::new(albedo),
+        }
     }
 }
 
-impl Material for Lambertian {
+impl<'a> Material for Lambertian<'a> {
     fn scatter(
         &self,
         ray: &Ray,
@@ -40,7 +43,7 @@ impl Material for Lambertian {
             dir: (target - rec.point).conv(),
             time: ray.time,
         };
-        Some((ray, self.albedo))
+        Some((ray, self.albedo.value(rec.u, rec.v, rec.point)))
     }
 }
 

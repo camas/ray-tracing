@@ -1,6 +1,7 @@
 use crate::hittable::{HitRecord, Hittable, MovingSphere, Sphere};
 use crate::material::{Dielectric, Lambertian, Material, Metal};
 use crate::ray::Ray;
+use crate::texture::{Checker, SolidColor};
 use crate::{Color, Point3, Vec3};
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::rngs::ThreadRng;
@@ -18,7 +19,8 @@ impl<'a> World<'a> {
         let mut world = World::default();
 
         // Ground
-        let material = Lambertian::new(color!(0.5, 0.5, 0.5));
+        let texture = SolidColor::new(color!(0.5, 0.5, 0.5));
+        let material = Lambertian::new(texture);
         let shape = Sphere::new(point3!(0., -1000., 0.), 1000., material);
         world.add(shape);
 
@@ -39,6 +41,7 @@ impl<'a> World<'a> {
                 let mat: Box<dyn Material + Sync> = if mat_choice < 0.5 {
                     // Diffuse
                     let albedo = random_color(&mut rng, 0., 1.) * random_color(&mut rng, 0., 1.);
+                    let albedo = SolidColor::new(albedo);
                     Box::new(Lambertian::new(albedo))
                 } else if mat_choice < 0.75 {
                     // Metal
@@ -59,7 +62,7 @@ impl<'a> World<'a> {
         world.add(Sphere::new(
             point3!(-4., 1., 0.),
             1.,
-            Lambertian::new(color!(0.4, 0.2, 0.1)),
+            Lambertian::new(SolidColor::new(color!(0.4, 0.2, 0.1))),
         ));
         world.add(Sphere::new(
             point3!(4., 1., 0.),
@@ -75,7 +78,7 @@ impl<'a> World<'a> {
         let mut world = World::default();
 
         // Ground
-        let material = Lambertian::new(color!(0.5, 0.5, 0.5));
+        let material = Lambertian::new(SolidColor::new(color!(0.5, 0.5, 0.5)));
         let shape = Sphere::new(point3!(0., -1000., 0.), 1000., material);
         world.add(shape);
 
@@ -96,7 +99,7 @@ impl<'a> World<'a> {
                 let mat: Box<dyn Material + Sync> = if mat_choice < 0.5 {
                     // Diffuse
                     let albedo = random_color(&mut rng, 0., 1.) * random_color(&mut rng, 0., 1.);
-                    Box::new(Lambertian::new(albedo))
+                    Box::new(Lambertian::new(SolidColor::new(albedo)))
                 } else if mat_choice < 0.75 {
                     // Metal
                     let albedo = random_color(&mut rng, 0.5, 1.);
@@ -122,7 +125,71 @@ impl<'a> World<'a> {
         world.add(Sphere::new(
             point3!(-4., 1., 0.),
             1.,
-            Lambertian::new(color!(0.4, 0.2, 0.1)),
+            Lambertian::new(SolidColor::new(color!(0.4, 0.2, 0.1))),
+        ));
+        world.add(Sphere::new(
+            point3!(4., 1., 0.),
+            1.,
+            Metal::new(color!(0.7, 0.6, 0.5), 0.),
+        ));
+
+        world
+    }
+
+    /// Generates the cover image world with some moving balls
+    pub fn checkered_cover_world() -> Self {
+        let mut world = World::default();
+
+        // Ground
+        let texture = Checker::new(color!(0.2, 0.3, 0.1), color!(0.9, 0.9, 0.9));
+        let material = Lambertian::new(texture);
+        let shape = Sphere::new(point3!(0., -1000., 0.), 1000., material);
+        world.add(shape);
+
+        // Random small balls
+        let mut rng = rand::thread_rng();
+        for a in -11..11 {
+            for b in -11..11 {
+                let center = point3!(
+                    a as f64 + 0.9 * rng.sample::<f64, _>(Standard),
+                    0.2,
+                    b as f64 + 0.9 * rng.sample::<f64, _>(Standard)
+                );
+                if (center - point3!(4., 0.2, 0.)).length() <= 0.9 {
+                    continue;
+                }
+
+                let mat_choice = rng.sample::<f64, _>(Standard);
+                let mat: Box<dyn Material + Sync> = if mat_choice < 0.5 {
+                    // Diffuse
+                    let albedo = random_color(&mut rng, 0., 1.) * random_color(&mut rng, 0., 1.);
+                    Box::new(Lambertian::new(SolidColor::new(albedo)))
+                } else if mat_choice < 0.75 {
+                    // Metal
+                    let albedo = random_color(&mut rng, 0.5, 1.);
+                    let fuzz = random_f64(&mut rng, 0., 0.5);
+                    Box::new(Metal::new(albedo, fuzz))
+                } else {
+                    // Glass
+                    Box::new(Dielectric::new(1.5))
+                };
+                if rng.gen_bool(0.25) {
+                    let center1 = center + point3!(0., random_f64(&mut rng, 0.1, 0.3), 0.);
+                    let sphere = MovingSphere::new_boxed(center, center1, 0., 1., 0.2, mat);
+                    world.add(sphere);
+                } else {
+                    let sphere = Sphere::new_boxed(center, 0.2, mat);
+                    world.add(sphere);
+                }
+            }
+        }
+
+        // Big balls
+        world.add(Sphere::new(point3!(0., 1., 0.), 1., Dielectric::new(1.5)));
+        world.add(Sphere::new(
+            point3!(-4., 1., 0.),
+            1.,
+            Lambertian::new(SolidColor::new(color!(0.4, 0.2, 0.1))),
         ));
         world.add(Sphere::new(
             point3!(4., 1., 0.),
@@ -168,7 +235,7 @@ impl AABB {
         Self { min, max }
     }
 
-    pub fn surrounding_box(box_a: Self, box_b: Self) -> Self {
+    pub fn surrounding_box(box_a: &Self, box_b: &Self) -> Self {
         let min = Point3::new(
             box_a.min.x.min(box_b.min.x),
             box_a.min.y.min(box_b.min.y),
@@ -185,7 +252,7 @@ impl AABB {
     pub fn surrounding_option(box_a: Option<Self>, box_b: Option<Self>) -> Self {
         if let Some(box_a) = box_a {
             if let Some(box_b) = box_b {
-                return Self::surrounding_box(box_a, box_b);
+                return Self::surrounding_box(&box_a, &box_b);
             }
             return box_a;
         }

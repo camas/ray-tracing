@@ -286,6 +286,7 @@ pub mod hittable;
 pub mod image;
 pub mod material;
 pub mod ray;
+pub mod texture;
 pub mod world;
 
 pub fn raytrace_image(

@@ -5,6 +5,7 @@ use crate::{Color, Point3, Vec3};
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::rngs::ThreadRng;
 use rand::Rng;
+use std::f64::consts::PI;
 
 /// The object can be raytraced
 pub trait Hittable {
@@ -19,6 +20,16 @@ pub struct HitRecord<'a> {
     pub t: f64,
     pub front_face: bool,
     pub material: &'a dyn Material,
+    pub u: f64,
+    pub v: f64,
+}
+
+fn get_sphere_uv(p: Point3) -> (f64, f64) {
+    let phi = p.z.atan2(p.x);
+    let theta = p.y.asin();
+    let u = 1. - (phi + PI) / (2. * PI);
+    let v = (theta + PI / 2.) / PI;
+    (u, v)
 }
 
 /// A sphere
@@ -64,12 +75,15 @@ impl<'a> Hittable for Sphere<'a> {
             let normal = (point - self.center) / self.radius;
             let front_face = ray.dir.dot(&normal.conv()) < 0.;
             let normal = if front_face { normal } else { -normal };
+            let (u_res, v_res) = get_sphere_uv((point - self.center) / self.radius);
             return Some(HitRecord {
                 t,
                 point,
                 normal: normal.conv(),
                 front_face,
                 material: self.material.as_ref(),
+                u: u_res,
+                v: v_res,
             });
         }
 
@@ -79,12 +93,15 @@ impl<'a> Hittable for Sphere<'a> {
             let normal = (point - self.center) / self.radius;
             let front_face = ray.dir.dot(&normal.conv()) < 0.;
             let normal = if front_face { normal } else { -normal };
+            let (u_res, v_res) = get_sphere_uv((point - self.center) / self.radius);
             return Some(HitRecord {
                 t,
                 point,
                 normal: normal.conv(),
                 front_face,
                 material: self.material.as_ref(),
+                u: u_res,
+                v: v_res,
             });
         }
 
@@ -169,12 +186,15 @@ impl<'a> Hittable for MovingSphere<'a> {
             let normal = (point - center) / self.radius;
             let front_face = ray.dir.dot(&normal.conv()) < 0.;
             let normal = if front_face { normal } else { -normal };
+            let (u_res, v_res) = get_sphere_uv((point - self.center(ray.time)) / self.radius);
             return Some(HitRecord {
                 t,
                 point,
                 normal: normal.conv(),
                 front_face,
                 material: self.material.as_ref(),
+                u: u_res,
+                v: v_res,
             });
         }
 
@@ -184,12 +204,15 @@ impl<'a> Hittable for MovingSphere<'a> {
             let normal = (point - center) / self.radius;
             let front_face = ray.dir.dot(&normal.conv()) < 0.;
             let normal = if front_face { normal } else { -normal };
+            let (u_res, v_res) = get_sphere_uv((point - self.center(ray.time)) / self.radius);
             return Some(HitRecord {
                 t,
                 point,
                 normal: normal.conv(),
                 front_face,
                 material: self.material.as_ref(),
+                u: u_res,
+                v: v_res,
             });
         }
 
@@ -206,6 +229,6 @@ impl<'a> Hittable for MovingSphere<'a> {
             max: self.center(t1) + point3!(self.radius, self.radius, self.radius),
         };
 
-        Some(AABB::surrounding_box(box0, box1))
+        Some(AABB::surrounding_box(&box0, &box1))
     }
 }
