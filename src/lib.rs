@@ -74,6 +74,14 @@ macro_rules! vec3_struct {
             pub fn conv<T: VecType>(self) -> T {
                 T::from_params(self.$x, self.$y, self.$z)
             }
+
+            pub fn fract(self) -> Self {
+                Self {
+                    $x: self.$x.fract(),
+                    $y: self.$y.fract(),
+                    $z: self.$z.fract(),
+                }
+            }
         }
 
         impl Display for $name {
@@ -296,7 +304,7 @@ pub fn raytrace_image(
     image_height: u32,
 ) -> Image {
     let aspect_ratio = image_width as f64 / image_height as f64;
-    let samples_per_pixel = 100;
+    let samples_per_pixel = 10000;
     let camera = Camera::new(&camera_settings, aspect_ratio);
 
     // Setup progress bar
@@ -362,14 +370,17 @@ fn ray_color(
         return color!();
     }
     if let Some(rec) = world.hit(ray, 0.001, std::f64::INFINITY) {
+        let emitted = rec.material.emitted(rec.u, rec.v, rec.point);
         if let Some((ray, attenuation)) = rec.material.scatter(ray, &rec, rng, uniform_unit) {
-            return attenuation * ray_color(&ray, world, rng, uniform_unit, depth + 1);
+            return emitted + attenuation * ray_color(&ray, world, rng, uniform_unit, depth + 1);
         }
-        return color!();
+        return emitted;
     }
-    let unit_dir = ray.dir.unit_vector();
-    let t = 0.5 * (unit_dir.y + 1.);
-    ((1.0 - t) * color!(1.0, 1.0, 1.0)) + (t * color!(0.5, 0.7, 1.0))
+
+    color!(0., 0., 0.)
+    // let unit_dir = ray.dir.unit_vector();
+    // let t = 0.5 * (unit_dir.y + 1.);
+    // ((1.0 - t) * color!(1.0, 1.0, 1.0)) + (t * color!(0.5, 0.7, 1.0))
 }
 
 fn rand_unit_vector(rng: &mut ThreadRng, uniform_unit: &Uniform<f64>) -> Point3 {

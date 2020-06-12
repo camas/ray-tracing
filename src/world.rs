@@ -1,7 +1,7 @@
 use crate::hittable::{HitRecord, Hittable, MovingSphere, Sphere};
-use crate::material::{Dielectric, Lambertian, Material, Metal};
+use crate::material::{Dielectric, Lambertian, Light, Material, Metal};
 use crate::ray::Ray;
-use crate::texture::{Checker, SolidColor};
+use crate::texture::{Checker, ImageTexture, SolidColor, StarTexture};
 use crate::{Color, Point3, Vec3};
 use rand::distributions::{Distribution, Standard, Uniform};
 use rand::rngs::ThreadRng;
@@ -197,6 +197,26 @@ impl<'a> World<'a> {
             Metal::new(color!(0.7, 0.6, 0.5), 0.),
         ));
 
+        world
+    }
+
+    pub fn earth() -> Self {
+        // Earth
+        let mut world = World::default();
+        let texture = ImageTexture::new("textures/earthmap.jpg");
+        let material = Lambertian::new(texture);
+        let shape = Sphere::new(point3!(0., 0., 0.), 2., material);
+        world.add(shape);
+        // Ground
+        let texture = SolidColor::new(color!(0.1, 0.1, 0.1));
+        let material = Lambertian::new(texture);
+        let shape = Sphere::new(point3!(0., -1005., 0.), 1000., material);
+        world.add(shape);
+        // Light
+        let texture = SolidColor::new(color!(1., 0., 0.));
+        let material = Light::new(texture, color!(100., 20., 20.));
+        let shape = Sphere::new(point3!(0., 3., 1.), 1., material);
+        world.add(shape);
         world
     }
 

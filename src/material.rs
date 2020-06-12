@@ -1,8 +1,8 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::texture::Texture;
-use crate::Color;
 use crate::{rand_unit_vector, schlick};
+use crate::{Color, Point3};
 use rand::distributions::{Standard, Uniform};
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -15,6 +15,10 @@ pub trait Material {
         rng: &mut ThreadRng,
         uniform_unit: &Uniform<f64>,
     ) -> Option<(Ray, Color)>;
+
+    fn emitted(&self, u: f64, v: f64, point: Point3) -> Color {
+        color!(0., 0., 0.)
+    }
 }
 
 pub struct Lambertian<'a> {
@@ -37,7 +41,7 @@ impl<'a> Material for Lambertian<'a> {
         rng: &mut ThreadRng,
         uniform_unit: &Uniform<f64>,
     ) -> Option<(Ray, Color)> {
-        let target = rec.point + rec.normal.conv() + rand_unit_vector(rng, uniform_unit);
+        let target: Point3 = rec.point + rec.normal.conv() + rand_unit_vector(rng, uniform_unit);
         let ray = Ray {
             origin: rec.point,
             dir: (target - rec.point).conv(),
@@ -125,5 +129,42 @@ impl Material for Dielectric {
             time: ray.time,
         };
         Some((ray, attuen))
+    }
+}
+
+pub struct Light<'a> {
+    albedo: Box<dyn Texture + Sync + 'a>,
+    color: Color,
+}
+
+impl<'a> Light<'a> {
+    pub fn new<T: Texture + Sync + 'a>(albedo: T, color: Color) -> Self {
+        Self {
+            albedo: Box::new(albedo),
+            color,
+        }
+    }
+}
+
+impl<'a> Material for Light<'a> {
+    fn scatter(
+        &self,
+        ray: &Ray,
+        rec: &HitRecord,
+        rng: &mut ThreadRng,
+        uniform_unit: &Uniform<f64>,
+    ) -> Option<(Ray, Color)> {
+        return None;
+        let target: Point3 = rec.point + rec.normal.conv() + rand_unit_vector(rng, uniform_unit);
+        let ray = Ray {
+            origin: rec.point,
+            dir: (target - rec.point).conv(),
+            time: ray.time,
+        };
+        Some((ray, self.albedo.value(rec.u, rec.v, rec.point)))
+    }
+
+    fn emitted(&self, _: f64, _: f64, _: Point3) -> Color {
+        self.color
     }
 }

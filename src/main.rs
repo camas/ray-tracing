@@ -12,9 +12,18 @@ fn main() {
     let start_time = std::time::Instant::now();
 
     // Do work
-    let camera = CameraSettings::cover_camera();
-    let world = World::checkered_cover_world();
-    let image = raytrace_image(world, camera, 354, 240);
+    let camera = CameraSettings {
+        look_from: point3!(10., 4., 0.),
+        look_at: point3!(),
+        vup: vec3!(0., 1., 0.),
+        vfov: 90.,
+        aperture: 0.1,
+        focus_dist: 8.,
+        t0: 0.,
+        t1: 1.,
+    };
+    let world = World::earth();
+    let image = raytrace_image(world, camera, 1920, 1080);
     //let image = create_cover();
     image.write_png("image.png");
 
